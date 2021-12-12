@@ -1,0 +1,25 @@
+#  https://docs.docker.com/compose/compose-file/compose-file-v3/
+# Use root/example as user/password credentials
+version: "3"
+
+# описывается сервисы которые будут запускаться
+services:
+  # название 1-го сервиса
+  # для дева делаем запуск для разработки и прописываем волумы для того чтоб
+  # при измененния файлов локально файлы внутри докера перезаписывались
+  frontend:
+    command: npm run start
+    stdin_open: true
+    tty: true
+    #:/usr/myapp это путь до WORKDIR
+    volumes:
+      - ./frontend/src:/usr/myapp/src
+  api:
+    # после выполнения Докерфайла запускаем команду
+    command: npm run dev
+
+    # указываем что там же где и есть docker-compose файл - находится папка api->src
+    # и из нее надо скопировать внутрь контейнера в рабочую папку WORKDIR а путь к ней прописан
+    # в докерфайле и является /usr/myapp
+    volumes:
+      - ./api/src:/usr/myapp/src

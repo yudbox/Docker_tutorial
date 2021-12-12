@@ -1,15 +1,114 @@
+#  https://docs.docker.com/compose/compose-file/compose-file-v3/
 # Use root/example as user/password credentials
-version: '3.1'
+version: "3"
 
+# описывается сервисы которые будут запускаться
 services:
-  db:
-    image: mariadb
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: 123456
+  # название 1-го сервиса
+  frontend:
+    build: ./frontend
+    container_name: realworld-docker-frontend
 
-  adminer:
-    image: adminer
-    restart: always
+    # для сборки Реакт приложения запускаем nmp run build и после сборки нужно запустить пакет который
+    # будет обслуживать SPA на продакшн сервере
+    command: serve -s build -l 3000
     ports:
-      - 8080:8080
+      - "3000:3000"
+    restart: unless-stopped
+
+  # название 2-го сервиса
+  api:
+    # указывает где находится Докерфайл
+    build: ./api
+
+    # имя контейнера отображается при соманде docker ps
+    container_name: realworld-docker-api
+
+    # после выполнения Докерфайла запускаем команду
+    command: npm run start
+
+    #
+    restart: unless-stopped
+
+    # первый порт это внешний порт
+    # ворой порт это порт внутри контейнера я указал PORT - 3000
+    ports:
+      - "3001:3001"
+
+    # объявляю переменные окружения чтоб внутки приложения
+    # значения появлялись динамически из окружения
+    environment:
+      - PORT=3000
+      - HOST=http://realworld-docker.com
+        # в URL БД вместо хоста используется имя сервиса. Это возможно потому что
+      #  докер автомотически генерит хосты к сервисам
+      #  далее порт и имя БД которую я придумаю
+      - MONGO_URL=mongodb://my_local_mongo:27017/dbMongoName
+
+    depends_on:
+      - my_local_mongo
+
+    # название 3-го сервиса
+  auth:
+    # указывает где находится Докерфайл
+    build: ./auth
+
+    # имя контейнера отображается при соманде docker ps
+    container_name: realworld-docker-auth-server
+
+    # после выполнения Докерфайла запускаем команду
+    command: npm run start
+
+    #
+    restart: unless-stopped
+
+    # первый порт это внешний порт
+    # ворой порт это порт внутри контейнера я указал PORT - 3000
+    ports:
+      - "3002:3002"
+
+    # объявляю переменные окружения чтоб внутки приложения
+    # значения появлялись динамически из окружения
+    environment:
+      - PORT=3001
+      - HOST=http://realworld-docker.com
+        # в URL БД вместо хоста используется имя сервиса. Это возможно потому что
+      #  докер автомотически генерит хосты к сервисам
+      #  далее порт и имя БД которую я придумаю
+      - MONGO_URL=mongodb://auth_db_mongo:27017/auth
+
+    depends_on:
+      - auth_db_mongo
+
+  # название 4-го сервиса
+  my_local_mongo:
+    # новый сервис для БД не будет иметь докерфайла, а image будет
+    # качаться прямо с докерхаба
+    image: mongo:4
+
+    #
+    container_name: realworld-docker-my-local-mongo
+
+    # volumes это хранилища куда можно указать папку в которой будут храниться файлы сервиса
+    # вне контейнера и они не будут пересоздаваться при каждом перебилде
+    volumes:
+      - mongodb_api:/data/db
+
+  # название 5-го сервиса
+  auth_db_mongo:
+    # новый сервис для БД не будет иметь докерфайла, а image будет
+    # качаться прямо с докерхаба
+    image: mongo:4
+
+    #
+    container_name: realworld-docker-auth-db-mongo
+
+    # volumes это хранилища куда можно указать папку в которой будут храниться файлы сервиса
+    # вне контейнера и они не будут пересоздаваться при каждом перебилде
+    volumes:
+      - mongodb_auth:/data/db
+
+# глобальные volumes позваляют называть и взаимодействовать между контейнерами
+volumes:
+  mongodb_api:
+  mongodb_auth:
