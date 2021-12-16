@@ -12,8 +12,9 @@ services:
     # для сборки Реакт приложения запускаем nmp run build и после сборки нужно запустить пакет который
     # будет обслуживать SPA на продакшн сервере
     command: serve -s build -l 3000
-    ports:
-      - "3000:3000"
+    # порты для внешнего мира не  нужды т.к. frontend запроксирован через nginx
+    # ports:
+    #   - "3000:3000"
     restart: unless-stopped
 
   # название 2-го сервиса
@@ -108,7 +109,28 @@ services:
     volumes:
       - mongodb_auth:/data/db
 
-# глобальные volumes позваляют называть и взаимодействовать между контейнерами
+  # создаем контейнер nginx
+  nginx:
+    image: nginx:stable-alpine
+    container_name: realworld-docker-nginx
+
+    # он будет слушать 80 порт
+    # ps aux | grep nginx
+    ports:
+      - "80:80"
+
+    # создаем локально файл настройки nginx чтоб перенести его внутрь контейнера
+    volumes:
+      - ./nginx/nginx.conf.prod:/etc/nginx/conf.d/nginx.conf
+
+    depends_on:
+      - frontend
+
+  # глобальные volumes храняться внутки docker area и на них можно ссылаться как на локальный компьютер
 volumes:
   mongodb_api:
   mongodb_auth:
+
+  # docker ps
+  # docker -it container_name sh
+  # запустит якобы терминал внутри контейнера
